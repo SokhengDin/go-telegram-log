@@ -11,7 +11,19 @@ Send log messages to Telegram channels/groups via REST API. Built with Fiber and
 cp .env.example .env
 ```
 
-3. Run:
+3. Run with Docker:
+```bash
+# Build and start
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
+
+Or run directly with Go:
 ```bash
 go run main.go
 ```
