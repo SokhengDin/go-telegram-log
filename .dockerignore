@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+
+# Environment files (should be mounted or passed as env vars)
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+telegram-logs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+**/*_test.go
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Assets (optional, include if needed)
+assets/
+examples/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
