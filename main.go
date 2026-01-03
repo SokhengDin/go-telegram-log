@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"telegram-logs/config"
 	"telegram-logs/handlers"
 	"telegram-logs/middleware"
 	"telegram-logs/services"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -25,11 +30,16 @@ func main() {
 		log.Fatal("JWT_SECRET is required")
 	}
 
-	// Initialize services with goroutine support
-	telegramService, err := services.NewTelegramService(cfg.TelegramBotToken)
+	// Worker pool configuration
+	workers := 10       // Number of concurrent workers
+	queueSize := 1000   // Queue capacity
+
+	// Initialize services with worker pool for concurrency
+	telegramService, err := services.NewTelegramService(cfg.TelegramBotToken, workers, queueSize)
 	if err != nil {
 		log.Fatalf("Failed to initialize Telegram service: %v", err)
 	}
+	log.Printf("✅ Initialized Telegram service with %d workers and queue size %d", workers, queueSize)
 
 	// Initialize handlers
 	logHandler := handlers.NewLogHandler(telegramService)
@@ -61,14 +71,40 @@ func main() {
 	api.Use(authMiddleware.ValidateJWT())
 	api.Use(rateLimiter.Limit())
 	api.Post("/log", logHandler.SendLog)
+	api.Get("/stats", logHandler.GetStats)
 
-	// Start server
+	// Graceful shutdown handler
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	// Start server in goroutine
 	addr := fmt.Sprintf(":%s", cfg.ServerPort)
 	log.Printf("🚀 Starting Telegram Logs API on http://localhost%s", addr)
 	log.Printf("📝 Health check: http://localhost%s/health", addr)
 	log.Printf("📨 Log endpoint: http://localhost%s/api/v1/log", addr)
+	log.Printf("📊 Stats endpoint: http://localhost%s/api/v1/stats", addr)
 
-	if err := app.Listen(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	go func() {
+		if err := app.Listen(addr); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal
+	<-ctx.Done()
+	log.Println("🛑 Shutting down gracefully...")
+
+	// Graceful shutdown with timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Shutdown Fiber server
+	if err := app.ShutdownWithContext(shutdownCtx); err != nil {
+		log.Printf("⚠️ Server forced to shutdown: %v", err)
 	}
+
+	// Shutdown Telegram service (wait for workers to finish)
+	telegramService.Shutdown()
+
+	log.Println("✅ Server exited gracefully")
 }

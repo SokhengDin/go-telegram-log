@@ -14,10 +14,11 @@ import (
 )
 
 type TelegramService struct {
-	bot *bot.Bot
+	bot        *bot.Bot
+	workerPool *WorkerPool
 }
 
-func NewTelegramService(botToken string) (*TelegramService, error) {
+func NewTelegramService(botToken string, workers int, queueSize int) (*TelegramService, error) {
 	opts := []bot.Option{}
 
 	b, err := bot.New(botToken, opts...)
@@ -25,9 +26,20 @@ func NewTelegramService(botToken string) (*TelegramService, error) {
 		return nil, fmt.Errorf("failed to create bot: %w", err)
 	}
 
+	// Initialize worker pool for async processing
+	workerPool := NewWorkerPool(workers, queueSize)
+
 	return &TelegramService{
-		bot: b,
+		bot:        b,
+		workerPool: workerPool,
 	}, nil
+}
+
+// Shutdown gracefully shuts down the telegram service
+func (s *TelegramService) Shutdown() {
+	if s.workerPool != nil {
+		s.workerPool.Shutdown()
+	}
 }
 
 func (s *TelegramService) SendLog(ctx context.Context, logReq *models.LogRequest) (int, error) {
@@ -185,4 +197,20 @@ func (s *TelegramService) SendLogWithFile(ctx context.Context, chatIDStr string,
 	default:
 		return 0, fmt.Errorf("invalid media type for file upload: %s", mediaType)
 	}
+}
+
+// SendLogAsync submits a log to the worker pool for async processing (fire-and-forget)
+func (s *TelegramService) SendLogAsync(logReq *models.LogRequest, jobID string) error {
+	job := Job{
+		ID:      jobID,
+		LogReq:  logReq,
+		Service: s,
+		Result:  nil, // Fire and forget - no result channel
+	}
+	return s.workerPool.Submit(job)
+}
+
+// GetPoolStats returns worker pool statistics
+func (s *TelegramService) GetPoolStats() PoolStats {
+	return s.workerPool.Stats()
 }

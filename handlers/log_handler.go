@@ -6,6 +6,7 @@ import (
 	"telegram-logs/services"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 type LogHandler struct {
@@ -31,6 +32,7 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 	caption := c.FormValue("caption")
 	mediaType := models.MediaType(c.FormValue("media_type"))
 	parseMode := c.FormValue("parse_mode")
+	async := c.FormValue("async") == "true" // Check if async mode requested
 
 	messageThreadID, _ := strconv.Atoi(c.FormValue("message_thread_id"))
 
@@ -40,6 +42,7 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 
 	file, err := c.FormFile("file")
 	if err == nil {
+		// File uploads are always synchronous (need to process file)
 		messageID, err := h.telegramService.SendLogWithFile(c.Context(), chatID, mediaType, file, caption, parseMode, messageThreadID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
@@ -79,6 +82,24 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 		MessageThreadID: messageThreadID,
 	}
 
+	// Async mode - fire and forget
+	if async {
+		jobID := uuid.New().String()
+		err := h.telegramService.SendLogAsync(logReq, jobID)
+		if err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(models.ErrorResponse{
+				Success: false,
+				Error:   "Failed to queue log: " + err.Error(),
+			})
+		}
+		return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
+			"success": true,
+			"message": "Log queued for sending",
+			"job_id":  jobID,
+		})
+	}
+
+	// Synchronous mode - wait for result
 	messageID, err := h.telegramService.SendLog(c.Context(), logReq)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
@@ -98,5 +119,16 @@ func (h *LogHandler) HealthCheck(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status":  "healthy",
 		"service": "telegram-logs-api",
+	})
+}
+
+func (h *LogHandler) GetStats(c *fiber.Ctx) error {
+	stats := h.telegramService.GetPoolStats()
+	return c.JSON(fiber.Map{
+		"success":        true,
+		"workers":        stats.Workers,
+		"queue_size":     stats.QueueSize,
+		"queue_capacity": stats.QueueCapacity,
+		"completed_jobs": stats.CompletedJobs,
 	})
 }
