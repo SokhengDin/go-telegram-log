@@ -10,12 +10,13 @@ const (
 )
 
 type LogRequest struct {
-	ChatID    string    `json:"chat_id"`
-	Message   string    `json:"message,omitempty"`
-	ParseMode string    `json:"parse_mode,omitempty"`
-	MediaType MediaType `json:"media_type,omitempty"`
-	MediaURL  string    `json:"media_url,omitempty"`
-	Caption   string    `json:"caption,omitempty"`
+	ChatID    		string    `json:"chat_id"`
+	Message   		string    `json:"message,omitempty"`
+	ParseMode 		string    `json:"parse_mode,omitempty"`
+	MediaType 		MediaType `json:"media_type,omitempty"`
+	MediaURL  		string    `json:"media_url,omitempty"`
+	Caption   		string    `json:"caption,omitempty"`
+	MessageThreadID int 	  `json:"message_thread_id,omitempty"`
 }
 
 type LogResponse struct {

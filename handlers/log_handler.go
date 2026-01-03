@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strconv"
 	"telegram-logs/models"
 	"telegram-logs/services"
 
@@ -31,13 +32,15 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 	mediaType := models.MediaType(c.FormValue("media_type"))
 	parseMode := c.FormValue("parse_mode")
 
+	messageThreadID, _ := strconv.Atoi(c.FormValue("message_thread_id"))
+
 	if mediaType == "" {
 		mediaType = models.MediaText
 	}
 
 	file, err := c.FormFile("file")
 	if err == nil {
-		messageID, err := h.telegramService.SendLogWithFile(c.Context(), chatID, mediaType, file, caption, parseMode)
+		messageID, err := h.telegramService.SendLogWithFile(c.Context(), chatID, mediaType, file, caption, parseMode, messageThreadID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
 				Success: false,
@@ -67,12 +70,13 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 	}
 
 	logReq := &models.LogRequest{
-		ChatID:    chatID,
-		Message:   message,
-		MediaType: mediaType,
-		MediaURL:  mediaURL,
-		Caption:   caption,
-		ParseMode: parseMode,
+		ChatID:          chatID,
+		Message:         message,
+		MediaType:       mediaType,
+		MediaURL:        mediaURL,
+		Caption:         caption,
+		ParseMode:       parseMode,
+		MessageThreadID: messageThreadID,
 	}
 
 	messageID, err := h.telegramService.SendLog(c.Context(), logReq)

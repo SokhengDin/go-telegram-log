@@ -8,6 +8,7 @@ import (
 )
 
 // GenerateToken creates a new JWT token with the given client ID and secret
+// If expirationDays is 0 or negative, the token will never expire
 func GenerateToken(clientID, secret string, expirationDays int) (string, error) {
 	if clientID == "" {
 		return "", fmt.Errorf("client ID cannot be empty")
@@ -19,7 +20,10 @@ func GenerateToken(clientID, secret string, expirationDays int) (string, error) 
 	claims := jwt.MapClaims{
 		"sub": clientID,
 		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(time.Hour * 24 * time.Duration(expirationDays)).Unix(),
+	}
+
+	if expirationDays > 0 {
+		claims["exp"] = time.Now().Add(time.Hour * 24 * time.Duration(expirationDays)).Unix()
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -60,9 +60,10 @@ func (s *TelegramService) SendLog(ctx context.Context, logReq *models.LogRequest
 
 func (s *TelegramService) sendText(ctx context.Context, chatID int64, logReq *models.LogRequest, parseMode string) (int, error) {
 	msg, err := s.bot.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    chatID,
-		Text:      logReq.Message,
-		ParseMode: botModels.ParseMode(parseMode),
+		ChatID:          chatID,
+		Text:            logReq.Message,
+		ParseMode:       botModels.ParseMode(parseMode),
+		MessageThreadID: logReq.MessageThreadID,
 	})
 	if err != nil {
 		return 0, fmt.Errorf("failed to send message: %w", err)
@@ -73,10 +74,11 @@ func (s *TelegramService) sendText(ctx context.Context, chatID int64, logReq *mo
 func (s *TelegramService) sendPhoto(ctx context.Context, chatID int64, logReq *models.LogRequest, parseMode string) (int, error) {
 	photo := &botModels.InputFileString{Data: logReq.MediaURL}
 	msg, err := s.bot.SendPhoto(ctx, &bot.SendPhotoParams{
-		ChatID:    chatID,
-		Photo:     photo,
-		Caption:   logReq.Caption,
-		ParseMode: botModels.ParseMode(parseMode),
+		ChatID:          chatID,
+		Photo:           photo,
+		Caption:         logReq.Caption,
+		ParseMode:       botModels.ParseMode(parseMode),
+		MessageThreadID: logReq.MessageThreadID,
 	})
 	if err != nil {
 		return 0, fmt.Errorf("failed to send photo: %w", err)
@@ -87,10 +89,11 @@ func (s *TelegramService) sendPhoto(ctx context.Context, chatID int64, logReq *m
 func (s *TelegramService) sendDocument(ctx context.Context, chatID int64, logReq *models.LogRequest, parseMode string) (int, error) {
 	document := &botModels.InputFileString{Data: logReq.MediaURL}
 	msg, err := s.bot.SendDocument(ctx, &bot.SendDocumentParams{
-		ChatID:    chatID,
-		Document:  document,
-		Caption:   logReq.Caption,
-		ParseMode: botModels.ParseMode(parseMode),
+		ChatID:          chatID,
+		Document:        document,
+		Caption:         logReq.Caption,
+		ParseMode:       botModels.ParseMode(parseMode),
+		MessageThreadID: logReq.MessageThreadID,
 	})
 	if err != nil {
 		return 0, fmt.Errorf("failed to send document: %w", err)
@@ -101,10 +104,11 @@ func (s *TelegramService) sendDocument(ctx context.Context, chatID int64, logReq
 func (s *TelegramService) sendVideo(ctx context.Context, chatID int64, logReq *models.LogRequest, parseMode string) (int, error) {
 	video := &botModels.InputFileString{Data: logReq.MediaURL}
 	msg, err := s.bot.SendVideo(ctx, &bot.SendVideoParams{
-		ChatID:    chatID,
-		Video:     video,
-		Caption:   logReq.Caption,
-		ParseMode: botModels.ParseMode(parseMode),
+		ChatID:          chatID,
+		Video:           video,
+		Caption:         logReq.Caption,
+		ParseMode:       botModels.ParseMode(parseMode),
+		MessageThreadID: logReq.MessageThreadID,
 	})
 	if err != nil {
 		return 0, fmt.Errorf("failed to send video: %w", err)
@@ -112,7 +116,7 @@ func (s *TelegramService) sendVideo(ctx context.Context, chatID int64, logReq *m
 	return msg.ID, nil
 }
 
-func (s *TelegramService) SendLogWithFile(ctx context.Context, chatIDStr string, mediaType models.MediaType, file *multipart.FileHeader, caption, parseMode string) (int, error) {
+func (s *TelegramService) SendLogWithFile(ctx context.Context, chatIDStr string, mediaType models.MediaType, file *multipart.FileHeader, caption, parseMode string, messageThreadID int) (int, error) {
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("invalid chat_id: %w", err)
@@ -141,10 +145,11 @@ func (s *TelegramService) SendLogWithFile(ctx context.Context, chatIDStr string,
 	switch mediaType {
 	case models.MediaPhoto:
 		msg, err := s.bot.SendPhoto(ctx, &bot.SendPhotoParams{
-			ChatID:    chatID,
-			Photo:     inputFile,
-			Caption:   caption,
-			ParseMode: botModels.ParseMode(parseMode),
+			ChatID:          chatID,
+			Photo:           inputFile,
+			Caption:         caption,
+			ParseMode:       botModels.ParseMode(parseMode),
+			MessageThreadID: messageThreadID,
 		})
 		if err != nil {
 			return 0, fmt.Errorf("failed to send photo: %w", err)
@@ -153,10 +158,11 @@ func (s *TelegramService) SendLogWithFile(ctx context.Context, chatIDStr string,
 
 	case models.MediaDocument:
 		msg, err := s.bot.SendDocument(ctx, &bot.SendDocumentParams{
-			ChatID:    chatID,
-			Document:  inputFile,
-			Caption:   caption,
-			ParseMode: botModels.ParseMode(parseMode),
+			ChatID:          chatID,
+			Document:        inputFile,
+			Caption:         caption,
+			ParseMode:       botModels.ParseMode(parseMode),
+			MessageThreadID: messageThreadID,
 		})
 		if err != nil {
 			return 0, fmt.Errorf("failed to send document: %w", err)
@@ -165,10 +171,11 @@ func (s *TelegramService) SendLogWithFile(ctx context.Context, chatIDStr string,
 
 	case models.MediaVideo:
 		msg, err := s.bot.SendVideo(ctx, &bot.SendVideoParams{
-			ChatID:    chatID,
-			Video:     inputFile,
-			Caption:   caption,
-			ParseMode: botModels.ParseMode(parseMode),
+			ChatID:          chatID,
+			Video:           inputFile,
+			Caption:         caption,
+			ParseMode:       botModels.ParseMode(parseMode),
+			MessageThreadID: messageThreadID,
 		})
 		if err != nil {
 			return 0, fmt.Errorf("failed to send video: %w", err)
