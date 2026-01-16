@@ -14,11 +14,12 @@ import (
 )
 
 type TelegramService struct {
-	bot        *bot.Bot
-	workerPool *WorkerPool
+	bot             *bot.Bot
+	redisQueue      *RedisQueue
+	redisWorkerPool *RedisWorkerPool
 }
 
-func NewTelegramService(botToken string, workers int, queueSize int) (*TelegramService, error) {
+func NewTelegramService(botToken string, redisQueue *RedisQueue, workers int) (*TelegramService, error) {
 	opts := []bot.Option{}
 
 	b, err := bot.New(botToken, opts...)
@@ -26,19 +27,24 @@ func NewTelegramService(botToken string, workers int, queueSize int) (*TelegramS
 		return nil, fmt.Errorf("failed to create bot: %w", err)
 	}
 
-	// Initialize worker pool for async processing
-	workerPool := NewWorkerPool(workers, queueSize)
-
-	return &TelegramService{
+	service := &TelegramService{
 		bot:        b,
-		workerPool: workerPool,
-	}, nil
+		redisQueue: redisQueue,
+	}
+
+	// Initialize Redis worker pool for async processing
+	service.redisWorkerPool = NewRedisWorkerPool(workers, redisQueue, service)
+
+	return service, nil
 }
 
 // Shutdown gracefully shuts down the telegram service
 func (s *TelegramService) Shutdown() {
-	if s.workerPool != nil {
-		s.workerPool.Shutdown()
+	if s.redisWorkerPool != nil {
+		s.redisWorkerPool.Shutdown()
+	}
+	if s.redisQueue != nil {
+		s.redisQueue.Close()
 	}
 }
 
@@ -199,18 +205,12 @@ func (s *TelegramService) SendLogWithFile(ctx context.Context, chatIDStr string,
 	}
 }
 
-// SendLogAsync submits a log to the worker pool for async processing (fire-and-forget)
+// SendLogAsync submits a log to Redis queue for async processing (fire-and-forget)
 func (s *TelegramService) SendLogAsync(logReq *models.LogRequest, jobID string) error {
-	job := Job{
-		ID:      jobID,
-		LogReq:  logReq,
-		Service: s,
-		Result:  nil, // Fire and forget - no result channel
-	}
-	return s.workerPool.Submit(job)
+	return s.redisQueue.Enqueue(jobID, logReq)
 }
 
 // GetPoolStats returns worker pool statistics
-func (s *TelegramService) GetPoolStats() PoolStats {
-	return s.workerPool.Stats()
+func (s *TelegramService) GetPoolStats() (map[string]interface{}, error) {
+	return s.redisWorkerPool.GetStats()
 }

@@ -30,16 +30,24 @@ func main() {
 		log.Fatal("JWT_SECRET is required")
 	}
 
-	// Worker pool configuration
-	workers := 10       // Number of concurrent workers
-	queueSize := 1000   // Queue capacity
+	// Initialize Redis queue for persistent message storage
+	redisQueue, err := services.NewRedisQueue(
+		cfg.RedisAddr,
+		cfg.RedisPassword,
+		cfg.RedisDB,
+		fmt.Sprintf("worker-%d", time.Now().Unix()),
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize Redis queue: %v", err)
+	}
+	log.Printf("✅ Connected to Redis at %s", cfg.RedisAddr)
 
-	// Initialize services with worker pool for concurrency
-	telegramService, err := services.NewTelegramService(cfg.TelegramBotToken, workers, queueSize)
+	// Initialize Telegram service with Redis-backed worker pool
+	telegramService, err := services.NewTelegramService(cfg.TelegramBotToken, redisQueue, cfg.Workers)
 	if err != nil {
 		log.Fatalf("Failed to initialize Telegram service: %v", err)
 	}
-	log.Printf("✅ Initialized Telegram service with %d workers and queue size %d", workers, queueSize)
+	log.Printf("✅ Initialized Telegram service with %d workers (Redis-backed)", cfg.Workers)
 
 	// Initialize handlers
 	logHandler := handlers.NewLogHandler(telegramService)

@@ -123,12 +123,17 @@ func (h *LogHandler) HealthCheck(c *fiber.Ctx) error {
 }
 
 func (h *LogHandler) GetStats(c *fiber.Ctx) error {
-	stats := h.telegramService.GetPoolStats()
-	return c.JSON(fiber.Map{
-		"success":        true,
-		"workers":        stats.Workers,
-		"queue_size":     stats.QueueSize,
-		"queue_capacity": stats.QueueCapacity,
-		"completed_jobs": stats.CompletedJobs,
-	})
+	stats, err := h.telegramService.GetPoolStats()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
+			Success: false,
+			Error:   "Failed to get stats: " + err.Error(),
+		})
+	}
+
+	result := fiber.Map{"success": true}
+	for k, v := range stats {
+		result[k] = v
+	}
+	return c.JSON(result)
 }
