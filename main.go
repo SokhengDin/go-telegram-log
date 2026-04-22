@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"telegram-logs/config"
 	"telegram-logs/handlers"
+	applogger "telegram-logs/logger"
 	"telegram-logs/middleware"
 	"telegram-logs/services"
 	"time"
@@ -19,6 +20,8 @@ import (
 )
 
 func main() {
+	applogger.Init("logs/app.log")
+
 	// Load configuration
 	cfg := config.Load()
 
@@ -67,7 +70,9 @@ func main() {
 
 	// Global middleware
 	app.Use(recover.New()) // Recover from panics
-	app.Use(logger.New())  // Request logging
+	app.Use(logger.New(logger.Config{
+		Output: log.Writer(), // route Fiber access logs into the shared file+stdout writer
+	}))
 
 	// Public routes
 	app.Get("/health", logHandler.HealthCheck)
