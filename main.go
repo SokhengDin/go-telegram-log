@@ -71,7 +71,8 @@ func main() {
 	// Global middleware
 	app.Use(recover.New()) // Recover from panics
 	app.Use(logger.New(logger.Config{
-		Output: log.Writer(), // route Fiber access logs into the shared file+stdout writer
+		Output: log.Writer(),
+		Format: "${time} | ${status} | ${latency} | ${ip} | ${method} ${path} | body:${body}\n",
 	}))
 
 	// Public routes

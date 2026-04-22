@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"strconv"
 	"telegram-logs/models"
 	"telegram-logs/services"
@@ -45,6 +46,7 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 		// File uploads are always synchronous (need to process file)
 		messageID, err := h.telegramService.SendLogWithFile(c.Context(), chatID, mediaType, file, caption, parseMode, messageThreadID)
 		if err != nil {
+			log.Printf("ERROR SendLogWithFile chat_id=%s media_type=%s file=%s: %v", chatID, mediaType, file.Filename, err)
 			return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
 				Success: false,
 				Error:   "Failed to send log: " + err.Error(),
@@ -87,6 +89,7 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 		jobID := uuid.New().String()
 		err := h.telegramService.SendLogAsync(logReq, jobID)
 		if err != nil {
+			log.Printf("ERROR SendLogAsync chat_id=%s job_id=%s: %v", chatID, jobID, err)
 			return c.Status(fiber.StatusServiceUnavailable).JSON(models.ErrorResponse{
 				Success: false,
 				Error:   "Failed to queue log: " + err.Error(),
@@ -102,6 +105,7 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 	// Synchronous mode - wait for result
 	messageID, err := h.telegramService.SendLog(c.Context(), logReq)
 	if err != nil {
+		log.Printf("ERROR SendLog chat_id=%s media_type=%s: %v", chatID, mediaType, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
 			Success: false,
 			Error:   "Failed to send log: " + err.Error(),
@@ -125,6 +129,7 @@ func (h *LogHandler) HealthCheck(c *fiber.Ctx) error {
 func (h *LogHandler) GetStats(c *fiber.Ctx) error {
 	stats, err := h.telegramService.GetPoolStats()
 	if err != nil {
+		log.Printf("ERROR GetStats: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
 			Success: false,
 			Error:   "Failed to get stats: " + err.Error(),
