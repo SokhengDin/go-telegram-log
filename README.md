@@ -97,6 +97,29 @@ Issue: UI freeze on checkout
 Duration: 45 seconds"
 ```
 
+### Send Multiple Images (Album) via File Upload
+
+```bash
+curl -X POST http://localhost:8080/api/v1/log \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "chat_id=-1001234567890" \
+  -F "files=@screenshot1.png" \
+  -F "files=@screenshot2.png" \
+  -F "files=@screenshot3.png" \
+  -F "caption=<b>Deployment Screenshots</b>"
+```
+
+### Send Multiple Images (Album) via URL
+
+```bash
+curl -X POST http://localhost:8080/api/v1/log \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "chat_id=-1001234567890" \
+  -F "media_urls=https://example.com/img1.png" \
+  -F "media_urls=https://example.com/img2.png" \
+  -F "caption=<b>Report Screenshots</b>"
+```
+
 ### HTML Formatting Examples
 
 The API supports HTML formatting in messages and captions (default parse_mode is HTML):

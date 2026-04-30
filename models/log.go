@@ -7,16 +7,18 @@ const (
 	MediaPhoto    MediaType = "photo"
 	MediaDocument MediaType = "document"
 	MediaVideo    MediaType = "video"
+	MediaAlbum    MediaType = "album"
 )
 
 type LogRequest struct {
-	ChatID    		string    `json:"chat_id"`
-	Message   		string    `json:"message,omitempty"`
-	ParseMode 		string    `json:"parse_mode,omitempty"`
-	MediaType 		MediaType `json:"media_type,omitempty"`
-	MediaURL  		string    `json:"media_url,omitempty"`
-	Caption   		string    `json:"caption,omitempty"`
-	MessageThreadID int 	  `json:"message_thread_id,omitempty"`
+	ChatID          string    `json:"chat_id"`
+	Message         string    `json:"message,omitempty"`
+	ParseMode       string    `json:"parse_mode,omitempty"`
+	MediaType       MediaType `json:"media_type,omitempty"`
+	MediaURL        string    `json:"media_url,omitempty"`
+	MediaURLs       []string  `json:"media_urls,omitempty"`
+	Caption         string    `json:"caption,omitempty"`
+	MessageThreadID int       `json:"message_thread_id,omitempty"`
 }
 
 type LogResponse struct {

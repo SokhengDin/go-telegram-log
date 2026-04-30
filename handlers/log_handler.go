@@ -41,12 +41,12 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 		mediaType = models.MediaText
 	}
 
-	file, err := c.FormFile("file")
-	if err == nil {
-		// File uploads are always synchronous (need to process file)
-		messageID, err := h.telegramService.SendLogWithFile(c.Context(), chatID, mediaType, file, caption, parseMode, messageThreadID)
+	form, err := c.MultipartForm()
+	if err == nil && form != nil && len(form.File["files"]) > 0 {
+		files := form.File["files"]
+		messageID, err := h.telegramService.SendLogWithFile(c.Context(), chatID, mediaType, files, caption, parseMode, messageThreadID)
 		if err != nil {
-			log.Printf("ERROR SendLogWithFile chat_id=%s media_type=%s file=%s: %v", chatID, mediaType, file.Filename, err)
+			log.Printf("ERROR SendLogWithFile chat_id=%s media_type=%s: %v", chatID, mediaType, err)
 			return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
 				Success: false,
 				Error:   "Failed to send log: " + err.Error(),
@@ -67,11 +67,21 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 	}
 
 	mediaURL := c.FormValue("media_url")
-	if mediaType != models.MediaText && mediaURL == "" {
+	mediaURLs := c.Request().PostArgs().PeekMulti("media_urls")
+	var mediaURLList []string
+	for _, u := range mediaURLs {
+		mediaURLList = append(mediaURLList, string(u))
+	}
+
+	if mediaType != models.MediaText && mediaURL == "" && len(mediaURLList) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
 			Success: false,
-			Error:   "media_url or file is required for non-text media types",
+			Error:   "media_url, media_urls, or files is required for non-text media types",
 		})
+	}
+
+	if len(mediaURLList) > 1 {
+		mediaType = models.MediaAlbum
 	}
 
 	logReq := &models.LogRequest{
@@ -79,6 +89,7 @@ func (h *LogHandler) SendLog(c *fiber.Ctx) error {
 		Message:         message,
 		MediaType:       mediaType,
 		MediaURL:        mediaURL,
+		MediaURLs:       mediaURLList,
 		Caption:         caption,
 		ParseMode:       parseMode,
 		MessageThreadID: messageThreadID,
