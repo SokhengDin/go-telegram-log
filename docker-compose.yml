@@ -17,6 +17,8 @@ services:
       - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60}
     env_file:
       - .env
+    volumes:
+      - ./logs:/logs
     logging:
       driver: "json-file"
       options:

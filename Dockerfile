@@ -26,7 +26,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o telegram-logs .
 
 # Final stage - production
-FROM scratch
+FROM alpine:3.21
 
 # Copy timezone data from builder
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
@@ -36,6 +36,8 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy the binary
 COPY --from=builder /app/telegram-logs /telegram-logs
+
+RUN mkdir -p /logs && chown 65534:65534 /logs
 
 # Expose port
 EXPOSE 8080
