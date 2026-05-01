@@ -72,7 +72,7 @@ func main() {
 	app.Use(recover.New()) // Recover from panics
 	app.Use(logger.New(logger.Config{
 		Output: log.Writer(),
-		Format: "${time} | ${status} | ${latency} | ${ip} | ${method} ${path} | body:${body}\n",
+		Format: "${time} | ${status} | ${latency} | ${ip} | ${method} ${path}\n",
 	}))
 
 	// Public routes
